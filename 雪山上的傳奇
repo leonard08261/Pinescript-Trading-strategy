@@ -1,0 +1,38 @@
+//@version=5
+strategy("雪山上的傳奇", overlay = true, commission_value = 0.05,pyramiding = 3,close_entries_rule = 'ANY')
+
+r_len  = input(12, "RSI 長度")
+rsi    = ta.rsi(close, r_len)
+// ema    = input(200, "EMA 長度")
+// trend  = ta.sma(close, ema)
+// tre    = plot(trend, "趨勢", color = color.blue)
+
+long_condition  = close > open and rsi < 40
+short_condition = close < open and rsi > 60
+// long_condition  = close > open and close > ema and rsi < 40
+// short_condition = close < open and close < ema and rsi > 60
+
+///變數宣告
+bool accept_long  = true
+bool accept_short = true
+
+days_back = 10
+for i = 1 to days_back
+    if  close[i] > open[i] and rsi[i] < 40
+        accept_long  := false
+    if  close[i] < open[i] and rsi[i] > 60
+        accept_short := false
+
+if long_condition and strategy.position_size <= 0
+    strategy.entry("l", strategy.long, 1) 
+if math.abs(strategy.position_size)==1 and long_condition and strategy.position_size>0
+    strategy.entry("l1", strategy.long,1)
+if math.abs(strategy.position_size)==2 and long_condition and strategy.position_size>0
+    strategy.entry("l2", strategy.long,1)
+if short_condition
+    strategy.entry("s", strategy.short)
+
+
+plotshape(long_condition and accept_long, style  = shape.labelup,  location = location.belowbar, size = size.normal, color = color.green)
+plotshape(short_condition and accept_short, style = shape.labeldown,location = location.abovebar, size = size.normal, color = color.red)
+
