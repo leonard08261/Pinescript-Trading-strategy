@@ -1,0 +1,38 @@
+//@version=5
+strategy("約櫃 • 量化（未完成）", shorttitle = "WCPC 約櫃 • 量化（未完成）", overlay = true, commission_value = 0.05, initial_capital = 1000)
+ATR_length = 1
+ATR_mult   = 2
+ZL_length  = 50
+atr        = ATR_mult * ta.atr(ATR_length)
+lsma  = ta.linreg(close, ZL_length, 0)
+lsma2 = ta.linreg(lsma,  ZL_length, 0)
+eq    = lsma - lsma2
+zlsma = lsma + eq
+
+longStop      = ta.highest(close, ATR_length) - atr
+shortStop     = ta.lowest (close, ATR_length) + atr
+longStopPrev  = nz(longStop[1],   longStop) 
+shortStopPrev = nz(shortStop[1], shortStop)
+longStop     := close[1] > longStopPrev  ? math.max(longStop,  longStopPrev)  : longStop
+shortStop    := close[1] < shortStopPrev ? math.min(shortStop, shortStopPrev) : shortStop
+
+var int dir = 1
+dir := close > shortStopPrev ? 1 : close < longStopPrev ? -1 : dir
+
+var color longColor  = color.green
+var color shortColor = color.red
+
+buySignal  = dir == 1  and dir[1] == -1
+sellSignal = dir == -1 and dir[1] == 1
+plotshape(buySignal  ? longStop  : na, title = "做多訊號", text = "多", location = location.belowbar, style = shape.labelup,   size = size.tiny, color = longColor,  textcolor = color.white, transp = 0)
+plotshape(sellSignal ? shortStop : na, title = "做空訊號", text = "空", location = location.abovebar, style = shape.labeldown, size = size.tiny, color = shortColor, textcolor = color.white, transp = 0)
+plot     (zlsma, color = color.yellow, linewidth = 1)
+
+if (buySignal and low > zlsma)
+	strategy.entry("Buy Enter", strategy.long)
+	if low < zlsma
+		strategy.close("Buy Enter", comment = "Buy Exit")
+if (sellSignal and high < zlsma)
+	strategy.entry("Sell Enter", strategy.short)
+	if high > zlsma
+		strategy.close("Sell Enter", comment = "Sell Exit")
