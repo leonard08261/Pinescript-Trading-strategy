@@ -1,0 +1,58 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © leobitgetfire
+
+//@version=5
+strategy("無限月讀", overlay=true, margin_long=0, margin_short=0,commission_value = 0.05,initial_capital = 1000,default_qty_type = strategy.cash,default_qty_value = 1000)
+import leobitgetfire/backtest_leonard/9 as bl
+current_month = month(time,'UTC+8')
+current_day = dayofmonth(time,'UTC+8')
+ma1 = ta.sma(close,1991 - 1968)
+ma2 = ta.sma(close,2003 - 1968)
+ma3 = ta.sma(close,2011 - 1968)
+ma4 = ta.sma(close,2020 - 1968)
+
+plot(ma1,color = color.white)
+plot(ma2,color = color.red)
+plot(ma3,color = color.green)
+plot(ma4,color = color.blue)
+
+days = input.int(1)
+
+
+long_tri =  ta.crossover(close,ma1) 
+short_tri = ta.crossunder(close,ma1) 
+longCondition = ta.barssince(short_tri) > 1 ? long_tri : na
+shortCondition = ta.barssince(long_tri) > 1 ? short_tri : na
+[accept_long,accept_short] = bl.db(longCondition,shortCondition,days)
+var float longtp = 0.
+var float shorttp = 0.
+float longstop = 0.
+float shortstop = 0.
+tpandloss = input.string('USDT','止盈方法',options = ['USDT','%數'])
+dd = input.float(80,'止損大小')
+ss = input.float(160,'止盈大小')
+float tp_value = 0.
+float loss_value = 0.
+if tpandloss == 'USDT'
+    tp_value := ss
+    loss_value := dd
+else
+    tp_value := close * (0.01 * ss)
+    loss_value := close * (0.01* dd) 
+
+if (longCondition) and accept_long
+    longtp := close + tp_value
+    longstop := close - loss_value
+    entry_message = '<@&1038883069316309082>\n' + '🏮' + '無限月讀' + '🏮' +'\n' + '日期：'+ str.tostring(current_month)+'/'+ str.tostring(current_day) + '\n幣種：' + syminfo.ticker + '\n點位：' + str.tostring(open) + '\n方向：多\n' + '止損：' + str.tostring(longstop) + '\n止盈：' + str.tostring(longtp) + '\n建議：盈利套保，陸續減倉'
+    alert(entry_message,alert.freq_once_per_bar_close)
+    strategy.entry('long', strategy.long)
+    strategy.exit('long exit','long',stop = longstop,limit = longtp)
+
+
+if (shortCondition) and accept_short
+    shorttp := close - tp_value
+    shortstop := close + loss_value
+    entry_message = '<@&1038883069316309082>\n' + '🏮' + '無限月讀' + '🏮' +'\n' + '日期：'+ str.tostring(current_month)+'/'+ str.tostring(current_day) + '\n幣種：' + syminfo.ticker + '\n點位：' + str.tostring(open) + '\n方向：空\n' + '止損：' + str.tostring(shortstop) + '\n止盈：' + str.tostring(shorttp) + '\n建議：盈利套保，陸續減倉'
+    alert(entry_message,alert.freq_once_per_bar_close)
+    strategy.entry('short', strategy.short)
+    strategy.exit('short exit','short',stop = shortstop,limit = shorttp)
